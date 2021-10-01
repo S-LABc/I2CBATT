@@ -186,7 +186,7 @@ void writeControlAddresses(uint8_t low_payload, uint8_t high_payload);
 ```
 
 ## Установка
-[Скачать ZIP-архив](https://github.com/S-LABc/I2CBATT/archive/refs/heads/main.zip) этого репозитория. Запустить [Arduino IDE](https://www.arduino.cc/en/software). Выбрать *Скетч* -> *Подключить библиотеку* -> *Добавить .ZIP библиотеку*. В появившемся окне выбрать скаченный архив. Более [наглядная](https://wiki.iarduino.ru/page/Installing_libraries) инструкция. **Не забудьте изучить скетч из примеров.**
+Скачать ZIP-архив нужной версии из раздела [Releases](https://github.com/S-LABc/I2CBATT/releases). Запустить [Arduino IDE](https://www.arduino.cc/en/software). Выбрать *Скетч* -> *Подключить библиотеку* -> *Добавить .ZIP библиотеку*. В появившемся окне выбрать скаченный архив. Более [наглядная](https://wiki.iarduino.ru/page/Installing_libraries) инструкция. **Не забудьте изучить скетч из примеров.**
 
 ## Подключение АКБ
 ![Connecting Picture](images/connecting.jpg)
