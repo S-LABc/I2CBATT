@@ -1,3 +1,34 @@
+/*
+ * Библиотека позволяет получить доступ к некоторым регистрам
+ ** контроллера bq27546 от компании Texas Instruments по интерфейсу I2C.
+ ** Можно подключится и к другим контроллерам семейства bq2754x
+ * 
+ ** Библиотека использует ссылку на объект Wire. Это позволяет подключать
+ ** другие устройства на одну линию I2C, но частота линии должна быть 400 кГц
+ * 
+ * Сопроводительная документация:
+ ** https://www.ti.com/lit/an/slua408a/slua408a.pdf
+ ** https://www.ti.com/lit/an/slva101/slva101.pdf
+ ** https://www.ti.com/lit/an/slua917/slua917.pdf
+ ** https://www.ti.com/lit/an/slua503/slua503.pdf
+ ** https://www.ti.com/lit/ug/sluub74/sluub74.pdf
+ ** https://www.ti.com/lit/ds/symlink/bq27541.pdf
+ ** https://www.ti.com/lit/ds/symlink/bq27545-g1.pdf
+ ** https://www.ti.com/lit/ds/symlink/bq27425-g2a.pdf
+ ** https://www.ti.com/lit/ds/symlink/bq27546-g1.pdf
+ * 
+ * Проект I2CBATT на GitHub - https://github.com/S-LABc/I2CBATT
+ * Проект HDQBATT на GitHub - https://github.com/S-LABc/HDQBATT
+ * 
+ * Контакты:
+ ** YouTube - https://www.youtube.com/channel/UCbkE52YKRphgkvQtdwzQbZQ
+ ** Telegram - https://www.t.me/slabyt
+ ** GitHub - https://github.com/S-LABc
+ ** Gmail - romansklyar15@gmail.com
+ * 
+ * Copyright (C) 2021. v1.1 / Скляр Роман S-LAB
+ */
+
 #include "I2CBATT.h"
 
 // ########## CONSTRUCTOR ##########
@@ -10,11 +41,11 @@ I2CBATT::I2CBATT(TwoWire *twi) : _wire(twi ? twi : &Wire) {}
  */
 void I2CBATT::pullBlockData(uint8_t str[]) {
   // Запросить 32 байта данных по адресу 0x55
-  _wire->requestFrom(IIC_BATTERY_ADDRESS, (EXTD_CMD_BLOCK_DATA_H - EXTD_CMD_BLOCK_DATA_L));
+  _wire->requestFrom(I2CBATT_IIC_BATTERY_ADDRESS, (I2CBATT_EXTD_CMD_BLOCK_DATA_H - I2CBATT_EXTD_CMD_BLOCK_DATA_L));
   
   // Прочитать данные из буфера
   if (_wire->available() >= 1 ) {
-    for (uint8_t i = 0; i < (EXTD_CMD_BLOCK_DATA_H - EXTD_CMD_BLOCK_DATA_L); i ++) {
+    for (uint8_t i = 0; i < (I2CBATT_EXTD_CMD_BLOCK_DATA_H - I2CBATT_EXTD_CMD_BLOCK_DATA_L); i ++) {
       str[i] = _wire->read();
     }
   }
@@ -30,7 +61,7 @@ void I2CBATT::pullBlockData(uint8_t str[]) {
  */
 void I2CBATT::begin(void) {
   // Настройка частоты (400 кГц)
-  _wire->setClock(IIC_BATTERY_CLOCK);
+  _wire->setClock(I2CBATT_IIC_BATTERY_CLOCK);
   
   _wire->begin();
 }
@@ -39,7 +70,7 @@ void I2CBATT::begin(void) {
  */
 void I2CBATT::sendFirstRegister(uint8_t reg_addr) {
   // Начать передачу по адресу 0x55
-  _wire->beginTransmission(IIC_BATTERY_ADDRESS);
+  _wire->beginTransmission(I2CBATT_IIC_BATTERY_ADDRESS);
   
   // Отправить байт регистра
   _wire->write(reg_addr);
@@ -52,16 +83,16 @@ void I2CBATT::sendFirstRegister(uint8_t reg_addr) {
  */
 void I2CBATT::sendCommandManufactureBlock(uint8_t command) {
   // Начать передачу по адресу 0x55 для прередачи команды блока с данными производителя
-  _wire->beginTransmission(IIC_BATTERY_ADDRESS);
-  _wire->write(EXTD_CMD_DATA_FLASH_BLOCK);
+  _wire->beginTransmission(I2CBATT_IIC_BATTERY_ADDRESS);
+  _wire->write(I2CBATT_EXTD_CMD_DATA_FLASH_BLOCK);
   _wire->write(command);
   
   // Завершить соединение
   _wire->endTransmission();
   
   // Начать передачу по адресу 0x55 для возврата к младшему байту регистра блока с данными производителя
-  _wire->beginTransmission(IIC_BATTERY_ADDRESS);
-  _wire->write(EXTD_CMD_BLOCK_DATA_L);
+  _wire->beginTransmission(I2CBATT_IIC_BATTERY_ADDRESS);
+  _wire->write(I2CBATT_EXTD_CMD_BLOCK_DATA_L);
   
   // Завершить соединение
   _wire->endTransmission();
@@ -75,7 +106,7 @@ uint8_t I2CBATT::requestSingleRegister(void) {
   uint8_t single_byte = 0;
   
   // Запросить байт данных по адресу 0x55
-  _wire->requestFrom(IIC_BATTERY_ADDRESS, 1);
+  _wire->requestFrom(I2CBATT_IIC_BATTERY_ADDRESS, 1);
   
   // Прочитать данные из буфера
   if (_wire->available() >= 1 ) {
@@ -97,7 +128,7 @@ uint16_t I2CBATT::requestPairRegisters(void) {
   uint8_t high_byte = 0;
   
   // Запросить два байта данных по адресу 0x55
-  _wire->requestFrom(IIC_BATTERY_ADDRESS, 2);
+  _wire->requestFrom(I2CBATT_IIC_BATTERY_ADDRESS, 2);
   
   // Прочитать данные из буфера
   if (_wire->available() >= 1 ) {
@@ -117,24 +148,24 @@ uint16_t I2CBATT::requestPairRegisters(void) {
  */
 void I2CBATT::writeControlAddresses(uint8_t low_payload, uint8_t high_payload) {
   // Начать передачу по адресу 0x55 для прередачи старшего байта данных в младший регистр
-  _wire->beginTransmission(IIC_BATTERY_ADDRESS);
-  _wire->write(CMD_CONTROL_L);
+  _wire->beginTransmission(I2CBATT_IIC_BATTERY_ADDRESS);
+  _wire->write(I2CBATT_CMD_CONTROL_L);
   _wire->write(high_payload);
   
   // Завершить соединение
   _wire->endTransmission();
   
   // Начать передачу по адресу 0x55 для передачи младшего байта данных в старший регистр
-  _wire->beginTransmission(IIC_BATTERY_ADDRESS);
-  _wire->write(CMD_CONTROL_H);
+  _wire->beginTransmission(I2CBATT_IIC_BATTERY_ADDRESS);
+  _wire->write(I2CBATT_CMD_CONTROL_H);
   _wire->write(low_payload);
   
   // Завершить соединение
   _wire->endTransmission();
   
   // Начать передачу по адресу 0x55 для возврата к младшему байту регистра
-  _wire->beginTransmission(IIC_BATTERY_ADDRESS);
-  _wire->write(CMD_CONTROL_L);
+  _wire->beginTransmission(I2CBATT_IIC_BATTERY_ADDRESS);
+  _wire->write(I2CBATT_CMD_CONTROL_L);
   
   // Завершить соединение
   _wire->endTransmission();
@@ -145,7 +176,7 @@ void I2CBATT::writeControlAddresses(uint8_t low_payload, uint8_t high_payload) {
  */
 bool I2CBATT::isConnected(void) {
   // Начать передачу по адресу 0x55
-  _wire->beginTransmission(IIC_BATTERY_ADDRESS);
+  _wire->beginTransmission(I2CBATT_IIC_BATTERY_ADDRESS);
   return (!_wire->endTransmission()) ? true : false;
 }
 /* 
@@ -153,7 +184,7 @@ bool I2CBATT::isConnected(void) {
  * @return: целое число размером два байта uint16_t
  */
 uint16_t I2CBATT::getControlStatus(void) {
-  I2CBATT::writeControlAddresses(CNTL_CONTROL_STATUS_L, CNTL_CONTROL_STATUS_H);
+  I2CBATT::writeControlAddresses(I2CBATT_CNTL_CONTROL_STATUS_L, I2CBATT_CNTL_CONTROL_STATUS_H);
   return I2CBATT::requestPairRegisters();
 }
 /* 
@@ -161,119 +192,119 @@ uint16_t I2CBATT::getControlStatus(void) {
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagSEPinIsActive(void) {
-  return (I2CBATT::getControlStatus() >> CONTROL_STATUS_SE) & 1;
+  return (I2CBATT::getControlStatus() >> I2CBATT_CONTROL_STATUS_SE) & 1;
 }
 /* 
  * @brief: получить Бит состояния, указывающий, что контроллер находится в состоянии FULL ACCESS SEALED
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagIsFullAccessSealedMode(void) {
-  return (I2CBATT::getControlStatus() >> CONTROL_STATUS_FAS) & 1;
+  return (I2CBATT::getControlStatus() >> I2CBATT_CONTROL_STATUS_FAS) & 1;
 }
 /* 
  * @brief: получить Бит состояния, указывающий, что контроллер находится в состоянии SEALED
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagIsSealedMode(void) {
-  return (I2CBATT::getControlStatus() >> CONTROL_STATUS_SS) & 1;
+  return (I2CBATT::getControlStatus() >> I2CBATT_CONTROL_STATUS_SS) & 1;
 }
 /* 
  * @brief: получить Бит состояния, указывающий, что функция калибровки активна
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagCalibrationFunctionIsActive(void) {
-  return (I2CBATT::getControlStatus() >> CONTROL_STATUS_CALMODE) & 1;
+  return (I2CBATT::getControlStatus() >> I2CBATT_CONTROL_STATUS_CALMODE) & 1;
 }
 /* 
  * @brief: получить Бит состояния, указывающий, что активна процедура CCA
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagCoulombCounterCalibrationRoutineIsActive(void) {
-  return (I2CBATT::getControlStatus() >> CONTROL_STATUS_CCA) & 1;
+  return (I2CBATT::getControlStatus() >> I2CBATT_CONTROL_STATUS_CCA) & 1;
 }
 /* 
  * @brief: получить Бит состояния, указывающий, что процедура калибровки платы активна
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagBoardCalibrationRoutineIsActive(void) {
-  return (I2CBATT::getControlStatus() >> CONTROL_STATUS_BCA) & 1;
+  return (I2CBATT::getControlStatus() >> I2CBATT_CONTROL_STATUS_BCA) & 1;
 }
 /* 
  * @brief: получить Бит состояния, переключаемый при измении состояния QMAX
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagQMAXUpdate(void) {
-  return (I2CBATT::getControlStatus() >> CONTROL_STATUS_QMAXUPDATE) & 1;
+  return (I2CBATT::getControlStatus() >> I2CBATT_CONTROL_STATUS_QMAXUPDATE) & 1;
 }
 /* 
  * @brief: получить Бит состояния, указывающий, что функция прерывания HDQ активна
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagHDQInterruptFunctionIsActive(void) {
-  return (I2CBATT::getControlStatus() >> CONTROL_STATUS_HOSTIE) & 1;
+  return (I2CBATT::getControlStatus() >> I2CBATT_CONTROL_STATUS_HOSTIE) & 1;
 }
 /* 
  * @brief: получить управляющий Бит, указывающий, что команда SET_SHUTDOWN была отправлена
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagShutdownCommandIsSent(void) {
-  return (I2CBATT::getControlStatus() >> CONTROL_STATUS_SHUTDWN) & 1;
+  return (I2CBATT::getControlStatus() >> I2CBATT_CONTROL_STATUS_SHUTDWN) & 1;
 }
 /* 
  * @brief: получить Бит состояния, указывающий, что запрос на переход в режим HIBERNATE из режима SLEEP был выдан
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagRequestHibernateFromSleepMode(void) {
-  return (I2CBATT::getControlStatus() >> CONTROL_STATUS_HIBERNATE) & 1;
+  return (I2CBATT::getControlStatus() >> I2CBATT_CONTROL_STATUS_HIBERNATE) & 1;
 }
 /* 
  * @brief: получить Бит состояния, указывающий, что контроллер находится в режиме FULLSLEEP
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagIsFullSleepMode(void) {
-  return (I2CBATT::getControlStatus() >> CONTROL_STATUS_FULLSLEEP) & 1;
+  return (I2CBATT::getControlStatus() >> I2CBATT_CONTROL_STATUS_FULLSLEEP) & 1;
 }
 /* 
  * @brief: получить Бит состояния, указывающий, что контроллер находится в режиме SLEEP
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagIsSleepMode(void) {
-  return (I2CBATT::getControlStatus() >> CONTROL_STATUS_SLEEP) & 1;
+  return (I2CBATT::getControlStatus() >> I2CBATT_CONTROL_STATUS_SLEEP) & 1;
 }
 /* 
  * @brief: получить Бит состояния, указывающий, что алгоритм отслеживания импеданса использует режим CONSTANT-POWER
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagImpedanceTrackAlgorithm(void) {
-  return (I2CBATT::getControlStatus() >> CONTROL_STATUS_LDMD) & 1;
+  return (I2CBATT::getControlStatus() >> I2CBATT_CONTROL_STATUS_LDMD) & 1;
 }
 /* 
  * @brief: получить Бит состояния, указывающий, что обновления таблицы Ra отключены
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagRaTableUpdatesDisabled(void) {
-  return (I2CBATT::getControlStatus() >> CONTROL_STATUS_RUP_DIS) & 1;
+  return (I2CBATT::getControlStatus() >> I2CBATT_CONTROL_STATUS_RUP_DIS) & 1;
 }
 /* 
  * @brief: получить Бит состояния, указывающий, что напряжения банки в порядке
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagCellVoltagesOK(void) {
-  return (I2CBATT::getControlStatus() >> CONTROL_STATUS_VOK) & 1;
+  return (I2CBATT::getControlStatus() >> I2CBATT_CONTROL_STATUS_VOK) & 1;
 }
 /* 
  * @brief: получить Бит состояния, указывающий, что обновления Qmax включены
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagQmaxUpdatesEnabled(void) {
-  return (I2CBATT::getControlStatus() >> CONTROL_STATUS_QEN) & 1;
+  return (I2CBATT::getControlStatus() >> I2CBATT_CONTROL_STATUS_QEN) & 1;
 }
 /* 
  * @brief: получить модель контроллера АКБ (модель: bq27546, результат: 0x0546)
  * @return: целое число размером два байта uint16_t
  */
 uint16_t I2CBATT::getDeviceType(void) {
-  I2CBATT::writeControlAddresses(CNTL_DEVICE_TYPE_L, CNTL_DEVICE_TYPE_H);
+  I2CBATT::writeControlAddresses(I2CBATT_CNTL_DEVICE_TYPE_L, I2CBATT_CNTL_DEVICE_TYPE_H);
   return I2CBATT::requestPairRegisters();
 }
 /* 
@@ -281,7 +312,7 @@ uint16_t I2CBATT::getDeviceType(void) {
  * @return: число с плавающей точкой float
  */
 float I2CBATT::getFirmwareVersion(void) {
-  I2CBATT::writeControlAddresses(CNTL_FW_VERSION_L, CNTL_FW_VERSION_H);
+  I2CBATT::writeControlAddresses(I2CBATT_CNTL_FW_VERSION_L, I2CBATT_CNTL_FW_VERSION_H);
   float f = I2CBATT::requestSingleRegister() * 0.01;
   return I2CBATT::requestSingleRegister() + f;
 }
@@ -290,7 +321,7 @@ float I2CBATT::getFirmwareVersion(void) {
  * @return: число с плавающей точкой float
  */
 float I2CBATT::getHardwareVersion(void) {
-  I2CBATT::writeControlAddresses(CNTL_HW_VERSION_L, CNTL_HW_VERSION_H);
+  I2CBATT::writeControlAddresses(I2CBATT_CNTL_HW_VERSION_L, I2CBATT_CNTL_HW_VERSION_H);
   float f = I2CBATT::requestSingleRegister() * 0.01;
   return I2CBATT::requestSingleRegister() + f;
 }
@@ -299,7 +330,7 @@ float I2CBATT::getHardwareVersion(void) {
  * @return: число с плавающей точкой float
  */
 float I2CBATT::getTemperatureKelvin(void) {
-  I2CBATT::sendFirstRegister(CMD_TEMPERATURE_PAIR);
+  I2CBATT::sendFirstRegister(I2CBATT_CMD_TEMPERATURE_PAIR);
   return I2CBATT::requestPairRegisters() * 0.1;
 }
 /* 
@@ -320,8 +351,8 @@ float I2CBATT::getTemperatureFahrenheit(void) {
  * brief: получить напряжение на клемах АКБ (милливольты)
  * @return: целое число размером два байта unsigned short
  */
-unsigned short I2CBATT::getVoltageMilli(void) {
-  I2CBATT::sendFirstRegister(CMD_VOLTAGE_PAIR);
+word I2CBATT::getVoltageMilli(void) {
+  I2CBATT::sendFirstRegister(I2CBATT_CMD_VOLTAGE_PAIR);
   return I2CBATT::requestPairRegisters();
 }
 /* 
@@ -336,7 +367,7 @@ float I2CBATT::getVoltage(void) {
  * @return: целое число размером два байта uint16_t
  */
 uint16_t I2CBATT::getFlags(void) {
-  I2CBATT::sendFirstRegister(CMD_FLAGS_PAIR);
+  I2CBATT::sendFirstRegister(I2CBATT_CMD_FLAGS_PAIR);
   return I2CBATT::requestPairRegisters();
 }
 /* 
@@ -344,85 +375,85 @@ uint16_t I2CBATT::getFlags(void) {
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagBatteryHighIndicating(void) {  
-  return (I2CBATT::getFlags() >> BIT_DEFINITIONS_BATHI) & 1;
+  return (I2CBATT::getFlags() >> I2CBATT_BIT_DEFINITIONS_BATHI) & 1;
 }
 /* 
  * @brief: получить Бит низкого уровня заряда
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagBatteryLowIndicating(void) {  
-  return (I2CBATT::getFlags() >> BIT_DEFINITIONS_BATLOW) & 1;
+  return (I2CBATT::getFlags() >> I2CBATT_BIT_DEFINITIONS_BATLOW) & 1;
 }
 /* 
  * @brief: получить Бит запрета зарядки при высокой температуре
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagChargeInhibitindicates(void) {  
-  return (I2CBATT::getFlags() >> BIT_DEFINITIONS_CHG_INH) & 1;
+  return (I2CBATT::getFlags() >> I2CBATT_BIT_DEFINITIONS_CHG_INH) & 1;
 }
 /* 
  * @brief: получить Бит полностью заряжен
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagFullChargedIsDetected(void) {  
-  return (I2CBATT::getFlags() >> BIT_DEFINITIONS_FC) & 1;
+  return (I2CBATT::getFlags() >> I2CBATT_BIT_DEFINITIONS_FC) & 1;
 }
 /* 
  * @brief: получить Бит приостановки зарядки
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagChargeSuspend(void) {  
-  return (I2CBATT::getFlags() >> BIT_DEFINITIONS_CHG_SUS) & 1;
+  return (I2CBATT::getFlags() >> I2CBATT_BIT_DEFINITIONS_CHG_SUS) & 1;
 }
 /* 
  * @brief: получить Бит готовности вычисления Imax()
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagIndicatesComputedImax(void) {  
-  return (I2CBATT::getFlags() >> BIT_DEFINITIONS_IMAX) & 1;
+  return (I2CBATT::getFlags() >> I2CBATT_BIT_DEFINITIONS_IMAX) & 1;
 }
 /* 
  * @brief: получить Бит разрешенной быстрой зарядки
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagChargingAllowed(void) {  
-  return (I2CBATT::getFlags() >> BIT_DEFINITIONS_CHG) & 1;
+  return (I2CBATT::getFlags() >> I2CBATT_BIT_DEFINITIONS_CHG) & 1;
 }
 /* 
  * @brief: получить Бит достижения порога заряда SOC1
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagStateOfChargeThreshold1(void) {  
-  return (I2CBATT::getFlags() >> BIT_DEFINITIONS_SOC1) & 1;
+  return (I2CBATT::getFlags() >> I2CBATT_BIT_DEFINITIONS_SOC1) & 1;
 }
 /* 
  * @brief: получить Бит достижения порога заряда SOCF
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagStateOfChargeThresholdFinal(void) {  
-  return (I2CBATT::getFlags() >> BIT_DEFINITIONS_SOCF) & 1;
+  return (I2CBATT::getFlags() >> I2CBATT_BIT_DEFINITIONS_SOCF) & 1;
 }
 /* 
  * @brief: получить Бит обнаружения разрядки АКБ
  * @return: логическое значение bool
  */
 bool I2CBATT::getFlagDischargingDetected(void) {  
-  return (I2CBATT::getFlags() >> BIT_DEFINITIONS_DSG) & 1;
+  return (I2CBATT::getFlags() >> I2CBATT_BIT_DEFINITIONS_DSG) & 1;
 }
 /* 
  * brief: получить скомпенсированный оставшийся заряд в АКБ (миллиампер-часы)
  * @return: целое число размером два байта unsigned short
  */
-unsigned short I2CBATT::getRemainingCapacity(void) {
-  I2CBATT::sendFirstRegister(CMD_REMAINING_CAPACITY_PAIR);
+word I2CBATT::getRemainingCapacity(void) {
+  I2CBATT::sendFirstRegister(I2CBATT_CMD_REMAINING_CAPACITY_PAIR);
   return I2CBATT::requestPairRegisters();
 }
 /* 
  * brief: получить скомпенсированнаую оставшуюся емкость АКБ (миллиампер-часы)
  * @return: целое число размером два байта unsigned short
  */
-unsigned short I2CBATT::getFullChargeCapacity(void) {
-  I2CBATT::sendFirstRegister(CMD_FULL_CHARGE_CAPACITY_PAIR);
+word I2CBATT::getFullChargeCapacity(void) {
+  I2CBATT::sendFirstRegister(I2CBATT_CMD_FULL_CHARGE_CAPACITY_PAIR);
   return I2CBATT::requestPairRegisters();
 }
 /* 
@@ -430,7 +461,7 @@ unsigned short I2CBATT::getFullChargeCapacity(void) {
  * @return: число со знаком размером два байта short
  */
 short I2CBATT::getAverageCurrentMilli(void) {
-  I2CBATT::sendFirstRegister(CMD_AVERAGE_CURRENT_PAIR);
+  I2CBATT::sendFirstRegister(I2CBATT_CMD_AVERAGE_CURRENT_PAIR);
   return I2CBATT::requestPairRegisters();
 }
 /* 
@@ -444,8 +475,8 @@ float I2CBATT::getAverageCurrent(void) {
  * @brief: получить время до полного разряда (минуты)
  * @return: целое число размером два байта unsigned short
  */
-unsigned short I2CBATT::getTimeToEmpty(void) {
-  I2CBATT::sendFirstRegister(CMD_TIME_TO_EMPTY_PAIR);
+word I2CBATT::getTimeToEmpty(void) {
+  I2CBATT::sendFirstRegister(I2CBATT_CMD_TIME_TO_EMPTY_PAIR);
   return I2CBATT::requestPairRegisters();
 }
 /* 
@@ -453,7 +484,7 @@ unsigned short I2CBATT::getTimeToEmpty(void) {
  * @return: целое число размером два байта unsigned short
  */
 short I2CBATT::getAveragePowerMilli(void) {
-  I2CBATT::sendFirstRegister(CMD_AVERAGE_POWER_PAIR);
+  I2CBATT::sendFirstRegister(I2CBATT_CMD_AVERAGE_POWER_PAIR);
   return I2CBATT::requestPairRegisters();
 }
 /* 
@@ -467,8 +498,8 @@ float I2CBATT::getAveragePower(void) {
  * @brief: получить количество циклов перезарядки АКБ
  * @return: целое число размером два байта unsigned short
  */
-unsigned short I2CBATT::getCycleCount(void) {
-  I2CBATT::sendFirstRegister(CMD_CYCLE_COUNT_PAIR);
+word I2CBATT::getCycleCount(void) {
+  I2CBATT::sendFirstRegister(I2CBATT_CMD_CYCLE_COUNT_PAIR);
   return I2CBATT::requestPairRegisters();
 }
 /* 
@@ -476,15 +507,15 @@ unsigned short I2CBATT::getCycleCount(void) {
  * @return: целое число размером один байт byte
  */
 byte I2CBATT::getStateOfCharge(void) {
-  I2CBATT::sendFirstRegister(CMD_STATE_OF_CHARGE_PAIR);
+  I2CBATT::sendFirstRegister(I2CBATT_CMD_STATE_OF_CHARGE_PAIR);
   return I2CBATT::requestPairRegisters();
 }
 /* 
  * @brief: получить емкость АКБ установленную на заводе (миллиампер-часы)
  * @return: целое число размером два байта unsigned short
  */
-unsigned short I2CBATT::getDesignCapacity(void) {
-  I2CBATT::sendFirstRegister(EXTD_CMD_DESIGN_CAPACITY_PAIR);
+word I2CBATT::getDesignCapacity(void) {
+  I2CBATT::sendFirstRegister(I2CBATT_EXTD_CMD_DESIGN_CAPACITY_PAIR);
   return I2CBATT::requestPairRegisters();
 }
 /*
@@ -492,7 +523,7 @@ unsigned short I2CBATT::getDesignCapacity(void) {
  * @return: указатель на массив символов (строка)
  */
 char* I2CBATT::getManufacturerInfoBlockA(void) {
-  I2CBATT::sendCommandManufactureBlock(EXTD_CMD_MANUFACTURE_BLOCK_A);
+  I2CBATT::sendCommandManufactureBlock(I2CBATT_EXTD_CMD_MANUFACTURE_BLOCK_A);
   I2CBATT::pullBlockData(_block_data);
   return (char*)_block_data;
 }
@@ -501,7 +532,7 @@ char* I2CBATT::getManufacturerInfoBlockA(void) {
  * @return: указатель на массив символов (строка)
  */
 char* I2CBATT::getManufacturerInfoBlockB(void) {
-  I2CBATT::sendCommandManufactureBlock(EXTD_CMD_MANUFACTURE_BLOCK_B);
+  I2CBATT::sendCommandManufactureBlock(I2CBATT_EXTD_CMD_MANUFACTURE_BLOCK_B);
   I2CBATT::pullBlockData(_block_data);
   return (char*)_block_data;
 }
@@ -510,7 +541,7 @@ char* I2CBATT::getManufacturerInfoBlockB(void) {
  * @return: указатель на массив символов (строка)
  */
 char* I2CBATT::getManufacturerInfoBlockC(void) {
-  I2CBATT::sendCommandManufactureBlock(EXTD_CMD_MANUFACTURE_BLOCK_C);
+  I2CBATT::sendCommandManufactureBlock(I2CBATT_EXTD_CMD_MANUFACTURE_BLOCK_C);
   I2CBATT::pullBlockData(_block_data);
   return (char*)_block_data;
 }
@@ -519,6 +550,6 @@ char* I2CBATT::getManufacturerInfoBlockC(void) {
  * @return: целое число размером один байт uint8_t
  */
 uint8_t I2CBATT::getBlockDataChecksum(void) {
-  I2CBATT::sendFirstRegister(EXTD_CMD_BLOCK_DATA_CHEKSUM);
+  I2CBATT::sendFirstRegister(I2CBATT_EXTD_CMD_BLOCK_DATA_CHEKSUM);
   return I2CBATT::requestSingleRegister();
 }
