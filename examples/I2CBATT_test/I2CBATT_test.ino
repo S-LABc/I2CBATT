@@ -113,9 +113,9 @@ void readBatteryData() {
   Serial.print("0x");
   Serial.print(BATT.getFlags(), HEX); // hex значение регистра Flags()
   Serial.print(" RSVD(5)="); // Так можно достать отдельныве биты
-  Serial.print((BATT.getFlags() >> BIT_DEFINITIONS_RSVD_5) & 1);
+  Serial.print((BATT.getFlags() >> I2CBATT_BIT_DEFINITIONS_RSVD_5) & 1);
   Serial.print("|RSVD(4)="); // Так можно достать отдельныве биты
-  Serial.print((BATT.getFlags() >> BIT_DEFINITIONS_RSVD_4) & 1);
+  Serial.print((BATT.getFlags() >> I2CBATT_BIT_DEFINITIONS_RSVD_4) & 1);
   Serial.print("|BATHI="); // Высокий уровень зяряда
   Serial.print(BATT.getFlagBatteryHighIndicating());
   Serial.print("|BATLOW="); // Низкий уровень зяряда
@@ -123,17 +123,17 @@ void readBatteryData() {
   Serial.print("|CHG_INH="); // Запрет зарядки при высокой температуре
   Serial.print(BATT.getFlagChargeInhibitindicates());
   Serial.print("|RSVD(3)="); // Так можно достать отдельныве биты
-  Serial.print((BATT.getFlags() >> BIT_DEFINITIONS_RSVD_3) & 1);
+  Serial.print((BATT.getFlags() >> I2CBATT_BIT_DEFINITIONS_RSVD_3) & 1);
   Serial.print("|FC="); // Полностью зажен
   Serial.print(BATT.getFlagFullChargedIsDetected());
   Serial.print("RSVD(2)="); // Так можно достать отдельныве биты
-  Serial.print((BATT.getFlags() >> BIT_DEFINITIONS_RSVD_2) & 1);
+  Serial.print((BATT.getFlags() >> I2CBATT_BIT_DEFINITIONS_RSVD_2) & 1);
   Serial.print("|CHG_SUS="); // Приостановка зарядки
   Serial.print(BATT.getFlagChargeSuspend());
   Serial.print("|RSVD(1)="); // Так можно достать отдельныве биты
-  Serial.print((BATT.getFlags() >> BIT_DEFINITIONS_RSVD_1) & 1);
+  Serial.print((BATT.getFlags() >> I2CBATT_BIT_DEFINITIONS_RSVD_1) & 1);
   Serial.print("|RSVD(0)="); // Так можно достать отдельныве биты
-  Serial.print((BATT.getFlags() >> BIT_DEFINITIONS_RSVD_0) & 1);
+  Serial.print((BATT.getFlags() >> I2CBATT_BIT_DEFINITIONS_RSVD_0) & 1);
   Serial.print("|IMAX="); // Готовность вычислений Imax()
   Serial.print(BATT.getFlagIndicatesComputedImax());
   Serial.print("|CHG="); // Разрешена быстрая зарядка
